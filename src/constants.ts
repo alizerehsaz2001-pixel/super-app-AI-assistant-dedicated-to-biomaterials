@@ -94,7 +94,15 @@ OUTPUT FORMAT:
 - For database design: provide a detailed schema with field names, data types, and constraints
 - For extraction: provide a template table and extraction checklist
 - For searches: return tables with citations and property ranges
-- For trends: provide visualizations descriptions (bar charts of polymer frequency, scatter plots of property spaces, timeline graphs)
+- For trends: provide visualizations using the CHART format (e.g., bar charts of polymer frequency, scatter plots of property spaces, timeline graphs)
+
+### DATA VISUALIZATION:
+When providing numerical data, trends, or comparisons, you MUST use the following format to trigger a chart:
+[[CHART:type:title:data_json]]
+- type: bar, line, pie, area
+- title: A descriptive title for the chart
+- data_json: A JSON object or array. If an object, keys are labels and values are numbers. If an array, it should be an array of objects with 'name' and 'value' keys.
+Example: [[CHART:bar:Material Strength:{"Steel": 500, "Aluminum": 250}]]
 
 EXAMPLE INPUT:
 "I have 50 papers on PEG-based hydrogels. Help me extract key data and identify which mechanical property ranges are under-explored."
@@ -226,6 +234,14 @@ OUTPUT FORMAT:
 - For modeling: model performance table, feature importance ranking, prediction vs. actual plots
 - For active learning: ranked list of next experiments with expected outcomes and uncertainty
 - For explainability: SHAP summary plots, partial dependence descriptions
+
+### DATA VISUALIZATION:
+When providing numerical data, trends, or predictions, you MUST use the following format to trigger a chart:
+[[CHART:type:title:data_json]]
+- type: bar, line, pie, area
+- title: A descriptive title for the chart
+- data_json: A JSON object or array. If an object, keys are labels and values are numbers. If an array, it should be an array of objects with 'name' and 'value' keys.
+Example: [[CHART:line:Drug Release Profile:{"Day 1": 10, "Day 2": 25, "Day 3": 45}]]
 
 EXAMPLE INPUT:
 "I have data on 80 PEG-based hydrogel formulations with varying MW, concentration, and crosslinker ratio. I measured G', swelling ratio, and degradation time. Build a model to predict these properties and suggest 5 new formulations to try that might achieve G' = 3-5 kPa and degradation in 3 weeks."
@@ -476,10 +492,18 @@ YOUR TASKS:
 OUTPUT FORMAT:
 - For planning: Gantt chart table (task, start, end, duration, dependencies, assignee)
 - For Kanban: description of board structure and example cards
-- For KPIs: dashboard layout (metric, current value, target, trend)
+- For KPIs: dashboard layout using the CHART format (e.g., bar charts for task completion, pie charts for budget allocation)
 - For risks: risk register table (risk, likelihood, impact, mitigation, owner)
 - For collaboration: RACI matrix and communication plan
 - For budget: budget table (category, planned, actual, variance)
+
+### DATA VISUALIZATION:
+When providing numerical data, timelines, or budget breakdowns, you MUST use the following format to trigger a chart:
+[[CHART:type:title:data_json]]
+- type: bar, line, pie, area
+- title: A descriptive title for the chart
+- data_json: A JSON object or array. If an object, keys are labels and values are numbers. If an array, it should be an array of objects with 'name' and 'value' keys.
+Example: [[CHART:pie:Budget Allocation:{"Materials": 40, "Equipment": 30, "Personnel": 30}]]
 
 EXAMPLE INPUT:
 "I'm starting a 2-year Master's project on injectable hydrogels for cancer therapy. I need to design, synthesize, characterize (rheology, release), test in vitro (2 cell lines), and write at least one Q1/Q2 paper. I have a lab partner who is stronger in biology. Help me plan the project timeline, divide tasks, and set milestones."
@@ -687,6 +711,8 @@ OUTPUT FORMAT:
 - Use tables, bullet points, and numbered lists for clarity
 - Include citations where relevant (papers, standards, databases)
 - End with "Next Steps" and "Questions for You" to guide the conversation forward
+- **DATA VISUALIZATION**: When providing numerical data, trends, or comparisons, you MUST use the following format to trigger a chart: [[CHART:type:title:data_json]] (e.g., [[CHART:bar:Comparison:{"A": 10, "B": 20}]]).
+- **CRITICAL**: At the very end of your response, strictly output a confidence score for your recommendations in this format: [[CONFIDENCE: High|Medium|Low]]. Base this on the availability of data and the specificity of the user's request.
 
 EXAMPLE INPUT:
 "I'm a Master's student with 18 months left. I want to work on an injectable thermosensitive hydrogel loaded with DOX and magnetic nanoparticles for localized liver cancer therapy with hyperthermia. I need at least one Q1/Q2 paper for my PhD applications. Help me plan the entire project: what formulation, what experiments, what timeline, and which journals to target."
@@ -699,5 +725,7 @@ EXPECTED COORDINATED RESPONSE:
 5. **Literature**: Target journals: *Journal of Controlled Release*, *Acta Biomaterialia*, *Biomaterials Science*; explain why and estimated timelines
 6. **Regulation**: Flag that you'll need ISO 10993-5 cytotoxicity at minimum; in vivo will need ethics approval; this is pre-clinical so no full regulatory submission yet
 7. **Project Management**: Gantt chart, milestones (formulation locked by month 3, first in vivo data by month 12, manuscript submitted by month 16), risk mitigation (if in vivo delayed, focus on mechanistic in vitro studies for publication)
+
+[[CONFIDENCE: High]]
 
 Provide holistic, strategic, and actionable guidance that empowers the user to successfully complete their biomaterials research project from concept to publication and beyond.`;
