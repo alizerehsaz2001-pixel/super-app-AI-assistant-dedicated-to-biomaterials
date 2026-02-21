@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen } from 'lucide-react';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid } from 'lucide-react';
 import { streamChatResponse } from '../services/gemini';
-import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION } from '../constants';
+import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION } from '../constants';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
 }
 
-type Mode = 'design' | 'informatics' | 'eln' | 'ml' | 'research';
+type Mode = 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta';
 
 const INITIAL_MESSAGES: Record<Mode, Message> = {
   design: {
@@ -32,6 +32,22 @@ const INITIAL_MESSAGES: Record<Mode, Message> = {
   research: {
     role: 'model',
     text: "Hello. I am your Research Assistant. I can help with literature reviews, manuscript writing, and journal selection. What are you working on?"
+  },
+  regulatory: {
+    role: 'model',
+    text: "Hello. I am your Regulatory Affairs Specialist. I can help you navigate ISO standards, FDA/EMA pathways, and biocompatibility testing. What is your biomaterial or device?"
+  },
+  project: {
+    role: 'model',
+    text: "Hello. I am your Project Management Assistant. I can help you plan timelines, track tasks, and manage resources for your R&D project. What are your project goals?"
+  },
+  integration: {
+    role: 'model',
+    text: "Hello. I am your Integration Specialist. I can help you configure your profile, connect to external databases and instruments, and manage plugins. How can I customize the platform for you?"
+  },
+  meta: {
+    role: 'model',
+    text: "Hello. I am the Meta-AI Coordinator. I can orchestrate your entire research project across all our specialized assistants. Tell me about your high-level goals or complex challenges."
   }
 };
 
@@ -65,6 +81,30 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
     "Draft an abstract for my study on silk scaffolds",
     "Suggest Q1 journals for a biomaterials paper",
     "Help me respond to a reviewer comment on statistics"
+  ],
+  regulatory: [
+    "What ISO 10993 tests are needed for a bone implant?",
+    "Explain the FDA 510(k) pathway for a wound dressing",
+    "Create a risk management matrix for a hydrogel",
+    "What are the sterilization requirements for nanoparticles?"
+  ],
+  project: [
+    "Create a Gantt chart for a 2-year Master's project",
+    "Design a Kanban board for our lab's synthesis team",
+    "Identify risks for a clinical translation project",
+    "Draft a budget for a grant application"
+  ],
+  integration: [
+    "Set up my profile for a PhD student in tissue engineering",
+    "Connect to PubMed for weekly alerts on hydrogels",
+    "How do I integrate data from my Anton Paar rheometer?",
+    "Install the Microfluidics Designer plugin"
+  ],
+  meta: [
+    "Plan a full project: injectable hydrogel for liver cancer",
+    "I have data but need help with analysis and publication",
+    "Guide me from idea to clinical trial for a bone scaffold",
+    "Optimize my workflow for a high-throughput screening study"
   ]
 };
 
@@ -117,6 +157,10 @@ export default function ChatInterface() {
     if (mode === 'eln') systemInstruction = ELN_SYSTEM_INSTRUCTION;
     if (mode === 'ml') systemInstruction = ML_SYSTEM_INSTRUCTION;
     if (mode === 'research') systemInstruction = RESEARCH_SYSTEM_INSTRUCTION;
+    if (mode === 'regulatory') systemInstruction = REGULATORY_SYSTEM_INSTRUCTION;
+    if (mode === 'project') systemInstruction = PROJECT_SYSTEM_INSTRUCTION;
+    if (mode === 'integration') systemInstruction = INTEGRATION_SYSTEM_INSTRUCTION;
+    if (mode === 'meta') systemInstruction = META_SYSTEM_INSTRUCTION;
 
     try {
       // Create a placeholder for the model response
@@ -167,6 +211,10 @@ export default function ChatInterface() {
       case 'eln': return 'rose';
       case 'ml': return 'violet';
       case 'research': return 'amber';
+      case 'regulatory': return 'slate';
+      case 'project': return 'cyan';
+      case 'integration': return 'zinc';
+      case 'meta': return 'fuchsia';
     }
   };
 
@@ -177,6 +225,10 @@ export default function ChatInterface() {
       case 'eln': return <ClipboardList className="w-6 h-6 text-white" />;
       case 'ml': return <BrainCircuit className="w-6 h-6 text-white" />;
       case 'research': return <BookOpen className="w-6 h-6 text-white" />;
+      case 'regulatory': return <Scale className="w-6 h-6 text-white" />;
+      case 'project': return <KanbanSquare className="w-6 h-6 text-white" />;
+      case 'integration': return <Settings className="w-6 h-6 text-white" />;
+      case 'meta': return <LayoutGrid className="w-6 h-6 text-white" />;
     }
   };
 
@@ -187,6 +239,10 @@ export default function ChatInterface() {
       case 'eln': return 'ELN & LIMS Assistant';
       case 'ml': return 'Machine Learning Specialist';
       case 'research': return 'Research Assistant';
+      case 'regulatory': return 'Regulatory Affairs Specialist';
+      case 'project': return 'Project Management Assistant';
+      case 'integration': return 'Integration Specialist';
+      case 'meta': return 'Meta-AI Coordinator';
     }
   };
 
@@ -197,6 +253,10 @@ export default function ChatInterface() {
       case 'eln': return 'Protocols & Tracking';
       case 'ml': return 'Predictive Modeling & AI';
       case 'research': return 'Literature & Writing';
+      case 'regulatory': return 'Compliance & Translation';
+      case 'project': return 'Planning & Management';
+      case 'integration': return 'Profile & Integrations';
+      case 'meta': return 'Orchestration & Strategy';
     }
   };
 
@@ -212,12 +272,12 @@ export default function ChatInterface() {
             <h1 className="text-lg font-semibold tracking-tight">
               {getModeTitle(mode)}
             </h1>
-            <p className="text-xs text-stone-500 font-mono uppercase tracking-wider">v1.3.0 • {getModeSubtitle(mode)}</p>
+            <p className="text-xs text-stone-500 font-mono uppercase tracking-wider">v1.5.0 • {getModeSubtitle(mode)}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-2 bg-stone-100 p-1 rounded-lg border border-stone-200 overflow-x-auto max-w-[400px] md:max-w-none">
-          {(['design', 'informatics', 'eln', 'ml', 'research'] as Mode[]).map((m) => (
+          {(['design', 'informatics', 'eln', 'ml', 'research', 'regulatory', 'project', 'integration', 'meta'] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => handleModeChange(m)}
@@ -290,7 +350,11 @@ export default function ChatInterface() {
                      {mode === 'design' ? 'GENERATING FORMULATION...' : 
                       mode === 'informatics' ? 'ANALYZING DATA...' : 
                       mode === 'eln' ? 'GENERATING PROTOCOL...' : 
-                      mode === 'ml' ? 'TRAINING MODELS...' : 'RESEARCHING...'}
+                      mode === 'ml' ? 'TRAINING MODELS...' : 
+                      mode === 'research' ? 'RESEARCHING...' : 
+                      mode === 'regulatory' ? 'ANALYZING REGULATIONS...' : 
+                      mode === 'project' ? 'PLANNING PROJECT...' : 
+                      mode === 'integration' ? 'CONFIGURING...' : 'ORCHESTRATING...'}
                    </div>
                 )}
               </div>
@@ -332,7 +396,11 @@ export default function ChatInterface() {
                 mode === 'informatics' ? "Ask about data extraction or trends..." :
                 mode === 'eln' ? "Describe the experiment or protocol you need..." :
                 mode === 'ml' ? "Describe your dataset or prediction goal..." :
-                "Ask for literature search or writing help..."
+                mode === 'research' ? "Ask for literature search or writing help..." :
+                mode === 'regulatory' ? "Ask about regulations, standards, or testing..." :
+                mode === 'project' ? "Describe your project goals or timeline..." :
+                mode === 'integration' ? "Ask about profile setup or integrations..." :
+                "Describe your high-level research goals..."
               }
               className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-48 min-h-[44px] py-2.5 px-2 text-sm text-stone-800 placeholder:text-stone-400"
               rows={1}
