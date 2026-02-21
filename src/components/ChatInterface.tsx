@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit } from 'lucide-react';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen } from 'lucide-react';
 import { streamChatResponse } from '../services/gemini';
-import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION } from '../constants';
+import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION } from '../constants';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
 }
 
-type Mode = 'design' | 'informatics' | 'eln' | 'ml';
+type Mode = 'design' | 'informatics' | 'eln' | 'ml' | 'research';
 
 const INITIAL_MESSAGES: Record<Mode, Message> = {
   design: {
@@ -28,6 +28,10 @@ const INITIAL_MESSAGES: Record<Mode, Message> = {
   ml: {
     role: 'model',
     text: "Hello. I am the Machine Learning Specialist. I can help you analyze experimental data, build predictive models, and suggest new experiments. Please describe your dataset or goal."
+  },
+  research: {
+    role: 'model',
+    text: "Hello. I am your Research Assistant. I can help with literature reviews, manuscript writing, and journal selection. What are you working on?"
   }
 };
 
@@ -55,6 +59,12 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
     "Build a model to predict drug release profiles",
     "Suggest new formulations using active learning",
     "Explain feature importance for G' prediction"
+  ],
+  research: [
+    "Find recent papers on magnetic hydrogels for cancer",
+    "Draft an abstract for my study on silk scaffolds",
+    "Suggest Q1 journals for a biomaterials paper",
+    "Help me respond to a reviewer comment on statistics"
   ]
 };
 
@@ -106,6 +116,7 @@ export default function ChatInterface() {
     if (mode === 'informatics') systemInstruction = INFORMATICS_SYSTEM_INSTRUCTION;
     if (mode === 'eln') systemInstruction = ELN_SYSTEM_INSTRUCTION;
     if (mode === 'ml') systemInstruction = ML_SYSTEM_INSTRUCTION;
+    if (mode === 'research') systemInstruction = RESEARCH_SYSTEM_INSTRUCTION;
 
     try {
       // Create a placeholder for the model response
@@ -155,6 +166,7 @@ export default function ChatInterface() {
       case 'informatics': return 'emerald';
       case 'eln': return 'rose';
       case 'ml': return 'violet';
+      case 'research': return 'amber';
     }
   };
 
@@ -164,6 +176,7 @@ export default function ChatInterface() {
       case 'informatics': return <Database className="w-6 h-6 text-white" />;
       case 'eln': return <ClipboardList className="w-6 h-6 text-white" />;
       case 'ml': return <BrainCircuit className="w-6 h-6 text-white" />;
+      case 'research': return <BookOpen className="w-6 h-6 text-white" />;
     }
   };
 
@@ -173,6 +186,7 @@ export default function ChatInterface() {
       case 'informatics': return 'Materials Informatics Specialist';
       case 'eln': return 'ELN & LIMS Assistant';
       case 'ml': return 'Machine Learning Specialist';
+      case 'research': return 'Research Assistant';
     }
   };
 
@@ -182,6 +196,7 @@ export default function ChatInterface() {
       case 'informatics': return 'Data & Analytics';
       case 'eln': return 'Protocols & Tracking';
       case 'ml': return 'Predictive Modeling & AI';
+      case 'research': return 'Literature & Writing';
     }
   };
 
@@ -202,7 +217,7 @@ export default function ChatInterface() {
         </div>
         
         <div className="flex items-center gap-2 bg-stone-100 p-1 rounded-lg border border-stone-200 overflow-x-auto max-w-[400px] md:max-w-none">
-          {(['design', 'informatics', 'eln', 'ml'] as Mode[]).map((m) => (
+          {(['design', 'informatics', 'eln', 'ml', 'research'] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => handleModeChange(m)}
@@ -274,7 +289,8 @@ export default function ChatInterface() {
                      <Loader2 className="w-3 h-3 animate-spin" />
                      {mode === 'design' ? 'GENERATING FORMULATION...' : 
                       mode === 'informatics' ? 'ANALYZING DATA...' : 
-                      mode === 'eln' ? 'GENERATING PROTOCOL...' : 'TRAINING MODELS...'}
+                      mode === 'eln' ? 'GENERATING PROTOCOL...' : 
+                      mode === 'ml' ? 'TRAINING MODELS...' : 'RESEARCHING...'}
                    </div>
                 )}
               </div>
@@ -315,7 +331,8 @@ export default function ChatInterface() {
                 mode === 'design' ? "Describe your target application..." :
                 mode === 'informatics' ? "Ask about data extraction or trends..." :
                 mode === 'eln' ? "Describe the experiment or protocol you need..." :
-                "Describe your dataset or prediction goal..."
+                mode === 'ml' ? "Describe your dataset or prediction goal..." :
+                "Ask for literature search or writing help..."
               }
               className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-48 min-h-[44px] py-2.5 px-2 text-sm text-stone-800 placeholder:text-stone-400"
               rows={1}
