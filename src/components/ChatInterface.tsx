@@ -459,8 +459,8 @@ export default function ChatInterface() {
                 }`}>
                   {React.createElement(getModeIcon(m), { className: 'w-4 h-4' })}
                 </div>
-                <div className="relative flex-1 text-left">
-                  <p className={`text-sm font-medium capitalize tracking-tight ${mode === m ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                <div className="relative flex-1 text-left min-w-0">
+                  <p className={`text-sm font-medium capitalize tracking-tight truncate ${mode === m ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     {m === 'ml' ? 'ML & AI' : m}
                   </p>
                   {mode === m && (
@@ -496,27 +496,27 @@ export default function ChatInterface() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col relative min-w-0 bg-[var(--bg-main)]/20 backdrop-blur-[2px]">
         {/* Header */}
-        <header className="h-18 flex items-center justify-between px-8 bg-[var(--bg-sidebar)] backdrop-blur-xl border-b border-[var(--border-color)] z-10 sticky top-0 transition-all duration-300">
-          <div className="flex items-center gap-4">
+        <header className="h-18 flex items-center justify-between px-4 md:px-8 bg-[var(--bg-sidebar)] backdrop-blur-xl border-b border-[var(--border-color)] z-10 sticky top-0 transition-all duration-300">
+          <div className="flex items-center gap-3 md:gap-4 min-w-0">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-[var(--bg-card)] rounded-lg transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="p-2 hover:bg-[var(--bg-card)] rounded-lg transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0"
               title={isSidebarOpen ? "Close Sidebar (Ctrl+B)" : "Open Sidebar (Ctrl+B)"}
             >
               {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <div className="flex items-center gap-4">
-              <div className={`hidden md:flex p-2 rounded-xl bg-${getModeTailwindColor(mode)}-500/20 shadow-lg shadow-${getModeTailwindColor(mode)}-500/10 ring-1 ring-white/10`}>
+            <div className="flex items-center gap-3 md:gap-4 min-w-0">
+              <div className={`hidden lg:flex p-2 rounded-xl bg-${getModeTailwindColor(mode)}-500/20 shadow-lg shadow-${getModeTailwindColor(mode)}-500/10 ring-1 ring-white/10 flex-shrink-0`}>
                 {React.createElement(getModeIcon(mode), { className: `w-4 h-4 text-${getModeTailwindColor(mode)}-400` })}
               </div>
-              <div>
-                <h2 className="text-base font-bold tracking-tight leading-none mb-1.5 text-[var(--text-primary)]">
+              <div className="min-w-0">
+                <h2 className="text-sm md:text-base font-bold tracking-tight leading-none mb-1.5 text-[var(--text-primary)] truncate">
                   {getModeTitle(mode)}
                 </h2>
-                <div className="flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-card)] text-[10px] text-[var(--text-muted)] font-mono font-medium uppercase tracking-wider border border-[var(--border-color)]">v1.6.0</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">•</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-medium tracking-wide">{getModeSubtitle(mode)}</span>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-card)] text-[9px] md:text-[10px] text-[var(--text-muted)] font-mono font-medium uppercase tracking-wider border border-[var(--border-color)] flex-shrink-0">v1.6.0</span>
+                  <span className="text-[10px] text-[var(--text-muted)] flex-shrink-0">•</span>
+                  <span className="text-[9px] md:text-[10px] text-[var(--text-muted)] font-medium tracking-wide truncate">{getModeSubtitle(mode)}</span>
                 </div>
               </div>
             </div>
