@@ -734,6 +734,14 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
               <span className="text-xs font-semibold text-[var(--text-secondary)] tracking-tight">Gemini 3.1 Pro</span>
             </div>
           </div>
+          <div className="mt-4 px-2 flex flex-col items-center gap-1">
+            <p className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] text-center">
+              Designed & Developed by
+            </p>
+            <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight hover:text-indigo-400 transition-colors cursor-default">
+              Ali Zerehsaz
+            </p>
+          </div>
         </div>
       </motion.aside>
 
