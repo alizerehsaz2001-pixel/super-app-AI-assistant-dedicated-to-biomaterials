@@ -113,7 +113,26 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
 
 export default function ChatInterface() {
   const [mode, setMode] = useState<Mode>('design');
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGES.design]);
+  const [allMessages, setAllMessages] = useState<Record<Mode, Message[]>>({
+    design: [INITIAL_MESSAGES.design],
+    informatics: [INITIAL_MESSAGES.informatics],
+    eln: [INITIAL_MESSAGES.eln],
+    ml: [INITIAL_MESSAGES.ml],
+    research: [INITIAL_MESSAGES.research],
+    regulatory: [INITIAL_MESSAGES.regulatory],
+    project: [INITIAL_MESSAGES.project],
+    integration: [INITIAL_MESSAGES.integration],
+    meta: [INITIAL_MESSAGES.meta],
+  });
+  const messages = allMessages[mode];
+  
+  const setMessages = (updater: Message[] | ((prev: Message[]) => Message[])) => {
+    setAllMessages(prev => ({
+      ...prev,
+      [mode]: typeof updater === 'function' ? updater(prev[mode]) : updater
+    }));
+  };
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -160,10 +179,6 @@ export default function ChatInterface() {
     return () => mainElement.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Keyboard Shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -208,11 +223,7 @@ export default function ChatInterface() {
 
   const handleModeChange = (newMode: Mode) => {
     if (mode === newMode) return;
-    if (messages.length > 1 && !window.confirm('Switching modes will clear the current conversation. Continue?')) {
-      return;
-    }
     setMode(newMode);
-    setMessages([INITIAL_MESSAGES[newMode]]);
     if (newMode === 'meta') {
       setIsThinking(true);
     }
