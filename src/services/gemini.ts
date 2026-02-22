@@ -7,7 +7,8 @@ export async function* streamChatResponse(
   messages: { role: 'user' | 'model', text: string }[],
   systemInstruction: string = DESIGN_SYSTEM_INSTRUCTION,
   isThinking: boolean = false,
-  apiKeyOverride?: string
+  apiKeyOverride?: string,
+  useSearch: boolean = false
 ) {
   const key = apiKeyOverride || process.env.GEMINI_API_KEY;
   const ai = new GoogleGenAI({ apiKey: key });
@@ -18,12 +19,13 @@ export async function* streamChatResponse(
   }));
 
   const responseStream = await ai.models.generateContentStream({
-    model: 'gemini-3.1-pro-preview',
+    model: useSearch ? 'gemini-3-flash-preview' : 'gemini-3.1-pro-preview',
     contents: contents,
     config: {
       systemInstruction: systemInstruction,
       temperature: 0.2,
-      thinkingConfig: isThinking ? { thinkingLevel: ThinkingLevel.HIGH } : undefined
+      thinkingConfig: isThinking ? { thinkingLevel: ThinkingLevel.HIGH } : undefined,
+      tools: useSearch ? [{ googleSearch: {} }] : undefined
     }
   });
 

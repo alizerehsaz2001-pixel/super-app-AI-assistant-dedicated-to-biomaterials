@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen } from 'lucide-react';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen, Wand2 } from 'lucide-react';
 import { streamChatResponse } from '../services/gemini';
 import { Visualization } from './Visualization';
-import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION } from '../constants';
+import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION, PROMPT_ARCHITECT_SYSTEM_INSTRUCTION } from '../constants';
 
 interface Message {
   role: 'user' | 'model';
@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-type Mode = 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta' | 'personal';
+type Mode = 'promptArchitect' | 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta' | 'personal';
 
 interface Project {
   id: string;
@@ -35,6 +35,10 @@ interface Project {
 }
 
 const INITIAL_MESSAGES: Record<Mode, Message> = {
+  promptArchitect: {
+    role: 'model',
+    text: "Hello. I am your Prompt Architect. I can help you engineer precise, high-performance prompts for any of our specialized assistants. Which section are you writing for, and what is your goal?"
+  },
   design: {
     role: 'model',
     text: "Hello. I am the Biomaterials Design Assistant. Describe your target application (e.g., 'injectable hydrogel for cardiac repair') and I will help you design a formulation."
@@ -78,6 +82,12 @@ const INITIAL_MESSAGES: Record<Mode, Message> = {
 };
 
 const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
+  promptArchitect: [
+    "Write a prompt for Design: hydrogel for cardiac repair",
+    "Engineer a prompt for Regulatory: bone implant ISO 10993",
+    "Create a prompt for ML: predict drug release profiles",
+    "Draft a prompt for Research: literature review on silk scaffolds"
+  ],
   design: [
     "Injectable hydrogel for cardiac repair",
     "Biodegradable scaffold for bone regeneration",
@@ -141,8 +151,9 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
 };
 
 export default function ChatInterface() {
-  const [mode, setMode] = useState<Mode>('design');
+  const [mode, setMode] = useState<Mode>('promptArchitect');
   const [allMessages, setAllMessages] = useState<Record<Mode, Message[]>>({
+    promptArchitect: [INITIAL_MESSAGES.promptArchitect],
     design: [INITIAL_MESSAGES.design],
     informatics: [INITIAL_MESSAGES.informatics],
     eln: [INITIAL_MESSAGES.eln],
@@ -337,6 +348,7 @@ export default function ChatInterface() {
     setIsLoading(true);
 
     let systemInstruction = DESIGN_SYSTEM_INSTRUCTION;
+    if (mode === 'promptArchitect') systemInstruction = PROMPT_ARCHITECT_SYSTEM_INSTRUCTION;
     if (mode === 'informatics') systemInstruction = INFORMATICS_SYSTEM_INSTRUCTION;
     if (mode === 'eln') systemInstruction = ELN_SYSTEM_INSTRUCTION;
     if (mode === 'ml') systemInstruction = ML_SYSTEM_INSTRUCTION;
@@ -368,7 +380,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       // Create a placeholder for the model response
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
 
-      const stream = streamChatResponse(finalMessages, systemInstruction, isThinking, apiKey);
+      const stream = streamChatResponse(finalMessages, systemInstruction, isThinking, apiKey, mode === 'promptArchitect');
       
       let fullResponse = '';
       let fullThought = '';
@@ -467,6 +479,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
 
   const getModeColor = (m: Mode) => {
     switch (m) {
+      case 'promptArchitect': return '#EC4899'; // pink
       case 'design': return '#4F46E5'; // indigo
       case 'informatics': return '#10B981'; // emerald
       case 'eln': return '#F43F5E'; // rose
@@ -482,6 +495,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
 
   const getModeTailwindColor = (m: Mode) => {
     switch (m) {
+      case 'promptArchitect': return 'pink';
       case 'design': return 'indigo';
       case 'informatics': return 'emerald';
       case 'eln': return 'rose';
@@ -497,6 +511,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
 
   const getModeIcon = (m: Mode) => {
     switch (m) {
+      case 'promptArchitect': return Wand2;
       case 'design': return FlaskConical;
       case 'informatics': return Database;
       case 'eln': return ClipboardList;
@@ -512,6 +527,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
 
   const getModeTitle = (m: Mode) => {
     switch (m) {
+      case 'promptArchitect': return 'Prompt Architect';
       case 'design': return 'Biomaterials Design Assistant';
       case 'informatics': return 'Materials Informatics Specialist';
       case 'eln': return 'ELN & LIMS Assistant';
@@ -527,6 +543,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
 
   const getModeSubtitle = (m: Mode) => {
     switch (m) {
+      case 'promptArchitect': return 'Engineering & Precision';
       case 'design': return 'Formulation & Design';
       case 'informatics': return 'Data & Analytics';
       case 'eln': return 'Protocols & Tracking';
@@ -561,6 +578,54 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
+          <div className="space-y-2">
+            <div className="px-2 mb-3 flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-[var(--text-muted)]"></div>
+              <span className="mono-label">Prompt Engineering</span>
+            </div>
+            {(['promptArchitect'] as Mode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => handleModeChange(m)}
+                title={getModeTitle(m)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+                  mode === m 
+                    ? `bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-md ring-1 ring-[var(--border-color)]` 
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {mode === m && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className={`absolute inset-0 bg-gradient-to-r from-${getModeTailwindColor(m)}-500/10 to-transparent opacity-50`} 
+                  />
+                )}
+                <div className={`relative p-2 rounded-lg transition-colors duration-300 ${
+                  mode === m 
+                    ? `bg-${getModeTailwindColor(m)}-500/20 text-${getModeTailwindColor(m)}-400` 
+                    : `bg-[var(--bg-card)] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] group-hover:bg-[var(--bg-card-hover)]`
+                }`}>
+                  {React.createElement(getModeIcon(m), { className: 'w-4 h-4' })}
+                </div>
+                <div className="relative flex-1 text-left min-w-0">
+                  <p className={`text-sm font-medium capitalize tracking-tight truncate ${mode === m ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                    {m === 'promptArchitect' ? 'Prompt Architect' : m}
+                  </p>
+                  {mode === m && (
+                    <motion.p 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="text-[10px] text-[var(--text-muted)] font-medium truncate mt-0.5"
+                    >
+                      {getModeSubtitle(m)}
+                    </motion.p>
+                  )}
+                </div>
+                {mode === m && <ChevronRight className="w-4 h-4 text-[var(--text-muted)] relative" />}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-2">
             <div className="px-2 mb-3 flex items-center gap-2">
               <div className="w-1 h-1 rounded-full bg-[var(--text-muted)]"></div>
@@ -887,7 +952,8 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className={`w-1.5 h-1.5 rounded-full bg-${getModeTailwindColor(mode)}-400`} />
                          </div>
                          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest font-medium">
-                           {mode === 'design' ? 'GENERATING FORMULATION...' : 
+                           {mode === 'promptArchitect' ? 'ENGINEERING PROMPT...' :
+                            mode === 'design' ? 'GENERATING FORMULATION...' : 
                             mode === 'informatics' ? 'ANALYZING DATA...' : 
                             mode === 'eln' ? 'GENERATING PROTOCOL...' : 
                             mode === 'ml' ? 'TRAINING MODELS...' : 
