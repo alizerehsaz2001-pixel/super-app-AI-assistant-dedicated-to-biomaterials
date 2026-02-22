@@ -58,7 +58,7 @@ export const Visualization: React.FC<VisualizationProps> = ({ type, data, title,
               }}
               itemStyle={{ color: '#fff' }}
             />
-            <Bar dataKey={yKey} fill="#4F46E5" radius={[4, 4, 0, 0]} />
+            <Bar dataKey={yKey} fill="var(--chart-primary)" radius={[4, 4, 0, 0]} />
           </BarChart>
         );
       case 'line':
@@ -87,7 +87,7 @@ export const Visualization: React.FC<VisualizationProps> = ({ type, data, title,
                 color: '#fff'
               }}
             />
-            <Line type="monotone" dataKey={yKey} stroke="#4F46E5" strokeWidth={2} dot={{ r: 4, fill: '#4F46E5' }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey={yKey} stroke="var(--chart-primary)" strokeWidth={2} dot={{ r: 4, fill: 'var(--chart-primary)' }} activeDot={{ r: 6 }} />
           </LineChart>
         );
       case 'pie':
@@ -123,8 +123,8 @@ export const Visualization: React.FC<VisualizationProps> = ({ type, data, title,
           <AreaChart data={data}>
             <defs>
               <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--chart-primary)" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="var(--chart-primary)" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.1)" />
@@ -150,7 +150,7 @@ export const Visualization: React.FC<VisualizationProps> = ({ type, data, title,
                 color: '#fff'
               }}
             />
-            <Area type="monotone" dataKey={yKey} stroke="#4F46E5" fillOpacity={1} fill="url(#colorValue)" strokeWidth={2} />
+            <Area type="monotone" dataKey={yKey} stroke="var(--chart-primary)" fillOpacity={1} fill="url(#colorValue)" strokeWidth={2} />
           </AreaChart>
         );
       default:
@@ -159,19 +159,19 @@ export const Visualization: React.FC<VisualizationProps> = ({ type, data, title,
   };
 
   return (
-    <div className="w-full h-64 bg-slate-900/30 rounded-2xl border border-slate-800/50 p-4 flex flex-col">
+    <div className="w-full h-64 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] p-4 flex flex-col shadow-sm">
       {title && (
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-xs font-mono uppercase tracking-widest text-slate-500 font-semibold">{title}</h4>
+          <h4 className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold">{title}</h4>
           <div className="flex gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
+            <div className="w-1 h-1 rounded-full bg-[var(--border-color)]"></div>
+            <div className="w-1 h-1 rounded-full bg-[var(--border-color)]"></div>
           </div>
         </div>
       )}
-      <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          {renderChart() || <div>No chart type specified</div>}
+      <div className="flex-1 min-h-0 relative">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          {renderChart() || <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-xs">No chart data available</div>}
         </ResponsiveContainer>
       </div>
     </div>

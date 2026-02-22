@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap } from 'lucide-react';
 import { streamChatResponse } from '../services/gemini';
 import { Visualization } from './Visualization';
 import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION } from '../constants';
@@ -140,7 +140,7 @@ export default function ChatInterface() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [isAllCopied, setIsAllCopied] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light' | 'cyberpunk'>('dark');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mainScrollRef = useRef<HTMLElement>(null);
@@ -148,15 +148,18 @@ export default function ChatInterface() {
 
   // Theme management
   useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
+    document.documentElement.classList.remove('light', 'cyberpunk');
+    if (theme !== 'dark') {
+      document.documentElement.classList.add(theme);
     }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => {
+      if (prev === 'dark') return 'light';
+      if (prev === 'light') return 'cyberpunk';
+      return 'dark';
+    });
   };
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -537,9 +540,9 @@ export default function ChatInterface() {
             <button 
               onClick={toggleTheme}
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] bg-[var(--bg-sidebar)] rounded-xl transition-all border border-[var(--border-color)] shadow-sm hover:shadow-md"
-              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              title={`Switch to ${theme === 'dark' ? 'Light' : theme === 'light' ? 'Cyberpunk' : 'Dark'} Mode`}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : theme === 'light' ? <Zap className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button 
               onClick={() => {
@@ -588,7 +591,7 @@ export default function ChatInterface() {
           ref={mainScrollRef}
           className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative"
         >
-          <div className="max-w-4xl mx-auto space-y-10 pb-4">
+          <div className="max-w-6xl mx-auto space-y-10 pb-4">
             <AnimatePresence initial={false}>
               {messages.map((msg, idx) => (
                 <motion.div 
@@ -655,7 +658,7 @@ export default function ChatInterface() {
                               </div>
 
                               {chart && (
-                                <div className="mt-6">
+                                <div className="mt-6 min-w-0">
                                   <Visualization 
                                     type={chart.type as any} 
                                     data={chart.data} 
@@ -791,7 +794,7 @@ export default function ChatInterface() {
 
         {/* Input Area */}
         <footer className="p-6 bg-[var(--bg-sidebar)] backdrop-blur-xl border-t border-[var(--border-color)] relative z-20">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="relative flex items-end gap-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-3xl p-2 shadow-lg shadow-black/20 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 transition-all duration-300 hover:shadow-black/30 hover:bg-[var(--bg-card-hover)]">
               <textarea
                 ref={textareaRef}
@@ -809,7 +812,7 @@ export default function ChatInterface() {
                   mode === 'integration' ? "Ask about profile setup or integrations..." :
                   "Describe your high-level research goals..."
                 }
-                className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-48 min-h-[52px] py-3.5 px-4 text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-relaxed"
+                className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-96 min-h-[52px] py-3.5 px-4 text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-relaxed"
                 rows={1}
               />
               <button
