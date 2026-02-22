@@ -1,13 +1,17 @@
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { DESIGN_SYSTEM_INSTRUCTION } from '../constants';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const DESIGN_SYSTEM_INSTRUCTION_FALLBACK = DESIGN_SYSTEM_INSTRUCTION;
 
 export async function* streamChatResponse(
   messages: { role: 'user' | 'model', text: string }[],
   systemInstruction: string = DESIGN_SYSTEM_INSTRUCTION,
-  isThinking: boolean = false
+  isThinking: boolean = false,
+  apiKeyOverride?: string
 ) {
+  const key = apiKeyOverride || process.env.GEMINI_API_KEY;
+  const ai = new GoogleGenAI({ apiKey: key });
+
   const contents = messages.map(msg => ({
     role: msg.role,
     parts: [{ text: msg.text }]

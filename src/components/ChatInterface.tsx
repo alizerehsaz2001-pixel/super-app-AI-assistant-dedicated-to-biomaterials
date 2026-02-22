@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap } from 'lucide-react';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen } from 'lucide-react';
 import { streamChatResponse } from '../services/gemini';
 import { Visualization } from './Visualization';
 import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION } from '../constants';
@@ -13,7 +13,26 @@ interface Message {
   thought?: string;
 }
 
-type Mode = 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta';
+declare global {
+  interface Window {
+    aistudio: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
+}
+
+type Mode = 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta' | 'personal';
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  author: string;
+  lastModified: string;
+  data?: any;
+}
 
 const INITIAL_MESSAGES: Record<Mode, Message> = {
   design: {
@@ -51,6 +70,10 @@ const INITIAL_MESSAGES: Record<Mode, Message> = {
   meta: {
     role: 'model',
     text: "Hello. I am the Meta-AI Coordinator. I can orchestrate your entire research project across all our specialized assistants. Tell me about your high-level goals or complex challenges."
+  },
+  personal: {
+    role: 'model',
+    text: "Welcome to your Personal Project Workspace. Here you can upload your own project files, customize their metadata, and collaborate with me to refine your research goals. How can I assist with your project today?"
   }
 };
 
@@ -108,6 +131,12 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
     "I have data but need help with analysis and publication",
     "Guide me from idea to clinical trial for a bone scaffold",
     "Optimize my workflow for a high-throughput screening study"
+  ],
+  personal: [
+    "Upload my latest hydrogel project",
+    "Customize the author and version of my project",
+    "Analyze the data within my uploaded project",
+    "Suggest improvements for my project description"
   ]
 };
 
@@ -123,6 +152,7 @@ export default function ChatInterface() {
     project: [INITIAL_MESSAGES.project],
     integration: [INITIAL_MESSAGES.integration],
     meta: [INITIAL_MESSAGES.meta],
+    personal: [INITIAL_MESSAGES.personal],
   });
   const messages = allMessages[mode];
   
@@ -141,6 +171,9 @@ export default function ChatInterface() {
   const [isThinking, setIsThinking] = useState(false);
   const [isAllCopied, setIsAllCopied] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light' | 'cyberpunk'>('dark');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('GEMINI_API_KEY_OVERRIDE') || '');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mainScrollRef = useRef<HTMLElement>(null);
@@ -160,6 +193,67 @@ export default function ChatInterface() {
       if (prev === 'light') return 'cyberpunk';
       return 'dark';
     });
+  };
+
+  const handleSaveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('GEMINI_API_KEY_OVERRIDE', apiKey.trim());
+      alert('API Key saved to local storage. It will be used for future requests.');
+    } else {
+      localStorage.removeItem('GEMINI_API_KEY_OVERRIDE');
+      alert('API Key override removed. Using system default.');
+    }
+  };
+
+  const handleOpenPlatformKeySelect = async () => {
+    try {
+      const aiWin = window as any;
+      if (aiWin.aistudio && typeof aiWin.aistudio.openSelectKey === 'function') {
+        await aiWin.aistudio.openSelectKey();
+      } else {
+        alert('Platform key selection is not available in this environment.');
+      }
+    } catch (error) {
+      console.error('Error opening key selection:', error);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const projectData = JSON.parse(content);
+        
+        const newProject: Project = {
+          id: projectData.id || Math.random().toString(36).substr(2, 9),
+          name: projectData.name || file.name.replace('.json', ''),
+          description: projectData.description || 'Uploaded project',
+          version: projectData.version || '1.0.0',
+          author: projectData.author || 'User',
+          lastModified: new Date().toISOString(),
+          data: projectData
+        };
+        
+        setCurrentProject(newProject);
+        setMessages(prev => [...prev, { 
+          role: 'model', 
+          text: `Successfully uploaded project: **${newProject.name}**. You can now customize it or ask me questions about it.` 
+        }]);
+      } catch (error) {
+        alert('Error parsing project file. Please ensure it is a valid JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleProjectUpdate = (updates: Partial<Project>) => {
+    if (!currentProject) return;
+    const updated = { ...currentProject, ...updates, lastModified: new Date().toISOString() };
+    setCurrentProject(updated);
   };
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -252,11 +346,29 @@ export default function ChatInterface() {
     if (mode === 'integration') systemInstruction = INTEGRATION_SYSTEM_INSTRUCTION;
     if (mode === 'meta') systemInstruction = META_SYSTEM_INSTRUCTION;
 
+    // Add project context if available
+    let finalMessages = [...messages, userMessage];
+    if (currentProject && mode === 'personal') {
+      const projectContext = `Current Project Context:
+Name: ${currentProject.name}
+Description: ${currentProject.description}
+Author: ${currentProject.author}
+Version: ${currentProject.version}
+Last Modified: ${currentProject.lastModified}
+Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
+      
+      // Prepend project context to the first message if it's not already there
+      finalMessages = [
+        { role: 'user', text: `[SYSTEM CONTEXT: ${projectContext}]\n\nUser Question: ${textToSend}` },
+        ...messages.slice(1)
+      ];
+    }
+
     try {
       // Create a placeholder for the model response
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
 
-      const stream = streamChatResponse([...messages, userMessage], systemInstruction, isThinking);
+      const stream = streamChatResponse(finalMessages, systemInstruction, isThinking, apiKey);
       
       let fullResponse = '';
       let fullThought = '';
@@ -364,6 +476,7 @@ export default function ChatInterface() {
       case 'project': return '#06B6D4'; // cyan
       case 'integration': return '#F97316'; // orange
       case 'meta': return '#D946EF'; // fuchsia
+      case 'personal': return '#10B981'; // emerald
     }
   };
 
@@ -378,6 +491,7 @@ export default function ChatInterface() {
       case 'project': return 'cyan';
       case 'integration': return 'orange';
       case 'meta': return 'fuchsia';
+      case 'personal': return 'emerald';
     }
   };
 
@@ -392,6 +506,7 @@ export default function ChatInterface() {
       case 'project': return KanbanSquare;
       case 'integration': return Settings;
       case 'meta': return LayoutGrid;
+      case 'personal': return FolderOpen;
     }
   };
 
@@ -406,6 +521,7 @@ export default function ChatInterface() {
       case 'project': return 'Project Management Assistant';
       case 'integration': return 'Integration Specialist';
       case 'meta': return 'Meta-AI Coordinator';
+      case 'personal': return 'Personal Project Workspace';
     }
   };
 
@@ -420,6 +536,7 @@ export default function ChatInterface() {
       case 'project': return 'Planning & Management';
       case 'integration': return 'Profile & Integrations';
       case 'meta': return 'Orchestration & Strategy';
+      case 'personal': return 'Upload & Customization';
     }
   };
 
@@ -476,6 +593,54 @@ export default function ChatInterface() {
                 <div className="relative flex-1 text-left min-w-0">
                   <p className={`text-sm font-medium capitalize tracking-tight truncate ${mode === m ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     {m === 'ml' ? 'ML & AI' : m}
+                  </p>
+                  {mode === m && (
+                    <motion.p 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="text-[10px] text-[var(--text-muted)] font-medium truncate mt-0.5"
+                    >
+                      {getModeSubtitle(m)}
+                    </motion.p>
+                  )}
+                </div>
+                {mode === m && <ChevronRight className="w-4 h-4 text-[var(--text-muted)] relative" />}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <div className="px-2 mb-3 flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-[var(--text-muted)]"></div>
+              <span className="mono-label">Personal Workspace</span>
+            </div>
+            {(['personal'] as Mode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => handleModeChange(m)}
+                title={getModeTitle(m)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+                  mode === m 
+                    ? `bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-md ring-1 ring-[var(--border-color)]` 
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {mode === m && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className={`absolute inset-0 bg-gradient-to-r from-${getModeTailwindColor(m)}-500/10 to-transparent opacity-50`} 
+                  />
+                )}
+                <div className={`relative p-2 rounded-lg transition-colors duration-300 ${
+                  mode === m 
+                    ? `bg-${getModeTailwindColor(m)}-500/20 text-${getModeTailwindColor(m)}-400` 
+                    : `bg-[var(--bg-card)] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] group-hover:bg-[var(--bg-card-hover)]`
+                }`}>
+                  {React.createElement(getModeIcon(m), { className: 'w-4 h-4' })}
+                </div>
+                <div className="relative flex-1 text-left min-w-0">
+                  <p className={`text-sm font-medium capitalize tracking-tight truncate ${mode === m ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                    {m === 'personal' ? 'Personal Projects' : m}
                   </p>
                   {mode === m && (
                     <motion.p 
@@ -745,6 +910,152 @@ export default function ChatInterface() {
                 transition={{ delay: 0.2, duration: 0.5 }}
                 className="space-y-12 mt-8"
               >
+                {mode === 'integration' && (
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 shadow-xl space-y-6">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                        <ShieldCheck className="w-6 h-6 text-indigo-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-[var(--text-primary)]">Security & Integrations</h4>
+                        <p className="text-sm text-[var(--text-muted)]">Manage your API keys and external connections.</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">
+                          Gemini API Key (Override)
+                        </label>
+                        <div className="relative flex gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type={showApiKey ? "text" : "password"}
+                              value={apiKey}
+                              onChange={(e) => setApiKey(e.target.value)}
+                              placeholder="Enter your Gemini API key..."
+                              className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 pr-12 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all"
+                            />
+                            <button
+                              onClick={() => setShowApiKey(!showApiKey)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                            >
+                              {showApiKey ? <X className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <button
+                            onClick={handleSaveApiKey}
+                            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                          >
+                            Save Key
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)] italic ml-1">
+                          Note: Keys are stored locally in your browser. For maximum security, use the platform's native key manager.
+                        </p>
+                      </div>
+
+                      <div className="pt-4 border-t border-[var(--border-color)]">
+                        <button
+                          onClick={handleOpenPlatformKeySelect}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-all group"
+                        >
+                          <Settings className="w-4 h-4 text-indigo-400 group-hover:rotate-90 transition-transform duration-500" />
+                          Open Platform Key Manager
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {mode === 'personal' && (
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 shadow-xl space-y-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                          <KanbanSquare className="w-6 h-6 text-emerald-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-[var(--text-primary)]">Project Workspace</h4>
+                          <p className="text-sm text-[var(--text-muted)]">Upload and customize your research projects.</p>
+                        </div>
+                      </div>
+                      {!currentProject ? (
+                        <label className="cursor-pointer px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2">
+                          <Upload className="w-4 h-4" />
+                          Upload Project
+                          <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                        </label>
+                      ) : (
+                        <button
+                          onClick={() => setCurrentProject(null)}
+                          className="px-4 py-2 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Clear Project
+                        </button>
+                      )}
+                    </div>
+
+                    {currentProject ? (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-6 pt-6 border-t border-[var(--border-color)]"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Project Name</label>
+                            <div className="relative group">
+                              <input
+                                type="text"
+                                value={currentProject.name}
+                                onChange={(e) => handleProjectUpdate({ name: e.target.value })}
+                                className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+                              />
+                              <Edit3 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Author</label>
+                            <input
+                              type="text"
+                              value={currentProject.author}
+                              onChange={(e) => handleProjectUpdate({ author: e.target.value })}
+                              className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Description</label>
+                          <textarea
+                            value={currentProject.description}
+                            onChange={(e) => handleProjectUpdate({ description: e.target.value })}
+                            rows={3}
+                            className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all resize-none"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider px-1">
+                          <div className="flex items-center gap-4">
+                            <span>ID: {currentProject.id}</span>
+                            <span>Version: {currentProject.version}</span>
+                          </div>
+                          <span>Last Modified: {new Date(currentProject.lastModified).toLocaleString()}</span>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[var(--border-color)] rounded-3xl bg-[var(--bg-sidebar)]/30">
+                        <FileJson className="w-12 h-12 text-[var(--text-muted)] mb-4 opacity-20" />
+                        <p className="text-sm text-[var(--text-muted)] text-center max-w-xs">
+                          No project loaded. Upload a project JSON file to start customizing your workspace.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="text-center space-y-4">
                   <div className="inline-flex p-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 shadow-inner">
                     <Sparkles className="w-8 h-8 text-indigo-400" />
