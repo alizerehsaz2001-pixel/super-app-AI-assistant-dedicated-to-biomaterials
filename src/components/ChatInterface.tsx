@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen, Wand2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen, Wand2, Plus } from 'lucide-react';
 import { streamChatResponse } from '../services/gemini';
 import { Visualization } from './Visualization';
 import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION, PROMPT_ARCHITECT_SYSTEM_INSTRUCTION } from '../constants';
@@ -185,6 +185,15 @@ export default function ChatInterface() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('GEMINI_API_KEY_OVERRIDE') || '');
   const [showApiKey, setShowApiKey] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const saved = localStorage.getItem('BIOMAT_PROJECTS');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Save projects to localStorage
+  useEffect(() => {
+    localStorage.setItem('BIOMAT_PROJECTS', JSON.stringify(projects));
+  }, [projects]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mainScrollRef = useRef<HTMLElement>(null);
@@ -249,10 +258,15 @@ export default function ChatInterface() {
           data: projectData
         };
         
+        setProjects(prev => {
+          const exists = prev.find(p => p.id === newProject.id);
+          if (exists) return prev.map(p => p.id === newProject.id ? newProject : p);
+          return [newProject, ...prev];
+        });
         setCurrentProject(newProject);
         setMessages(prev => [...prev, { 
           role: 'model', 
-          text: `Successfully uploaded project: **${newProject.name}**. You can now customize it or ask me questions about it.` 
+          text: `Successfully uploaded project: **${newProject.name}**. You can now collaborate with me on this project.` 
         }]);
       } catch (error) {
         alert('Error parsing project file. Please ensure it is a valid JSON.');
@@ -261,10 +275,49 @@ export default function ChatInterface() {
     reader.readAsText(file);
   };
 
+  const handleCreateProject = () => {
+    const newProject: Project = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: 'New Biomaterials Project',
+      description: 'A new research project focusing on...',
+      author: 'Researcher',
+      version: '1.0.0',
+      lastModified: new Date().toISOString(),
+      data: {}
+    };
+    setProjects(prev => [newProject, ...prev]);
+    setCurrentProject(newProject);
+    setMessages(prev => [...prev, { 
+      role: 'model', 
+      text: `Created new project: **${newProject.name}**. Let's start by defining your research goals.` 
+    }]);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    if (confirm('Are you sure you want to delete this project?')) {
+      setProjects(prev => prev.filter(p => p.id !== id));
+      if (currentProject?.id === id) setCurrentProject(null);
+    }
+  };
+
+  const handleDownloadProject = () => {
+    if (!currentProject) return;
+    const blob = new Blob([JSON.stringify(currentProject, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentProject.name.toLowerCase().replace(/\s+/g, '_')}_project.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleProjectUpdate = (updates: Partial<Project>) => {
     if (!currentProject) return;
     const updated = { ...currentProject, ...updates, lastModified: new Date().toISOString() };
     setCurrentProject(updated);
+    setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
   };
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -1043,90 +1096,162 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
                 )}
 
                 {mode === 'personal' && (
-                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 shadow-xl space-y-8">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                          <KanbanSquare className="w-6 h-6 text-emerald-400" />
+                  <div className="space-y-8">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 shadow-xl space-y-8">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                            <KanbanSquare className="w-6 h-6 text-emerald-400" />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-bold text-[var(--text-primary)]">Project Workspace</h4>
+                            <p className="text-sm text-[var(--text-muted)]">Manage and collaborate on your research projects.</p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-lg font-bold text-[var(--text-primary)]">Project Workspace</h4>
-                          <p className="text-sm text-[var(--text-muted)]">Upload and customize your research projects.</p>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={handleCreateProject}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            New Project
+                          </button>
+                          <label className="cursor-pointer px-4 py-2 bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                            <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                            Upload
+                            <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                          </label>
                         </div>
                       </div>
-                      {!currentProject ? (
-                        <label className="cursor-pointer px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2">
-                          <Upload className="w-4 h-4" />
-                          Upload Project
-                          <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-                        </label>
-                      ) : (
-                        <button
-                          onClick={() => setCurrentProject(null)}
-                          className="px-4 py-2 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-2"
+
+                      {currentProject ? (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-6 pt-6 border-t border-[var(--border-color)]"
                         >
-                          <Trash2 className="w-4 h-4" />
-                          Clear Project
-                        </button>
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">Active Project Details</h5>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={handleDownloadProject}
+                                className="p-2 text-[var(--text-muted)] hover:text-emerald-400 transition-colors"
+                                title="Download Project JSON"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setCurrentProject(null)}
+                                className="p-2 text-[var(--text-muted)] hover:text-rose-400 transition-colors"
+                                title="Close Project"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Project Name</label>
+                              <div className="relative group">
+                                <input
+                                  type="text"
+                                  value={currentProject.name}
+                                  onChange={(e) => handleProjectUpdate({ name: e.target.value })}
+                                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+                                />
+                                <Edit3 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Author</label>
+                              <input
+                                type="text"
+                                value={currentProject.author}
+                                onChange={(e) => handleProjectUpdate({ author: e.target.value })}
+                                className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Description</label>
+                            <textarea
+                              value={currentProject.description}
+                              onChange={(e) => handleProjectUpdate({ description: e.target.value })}
+                              rows={3}
+                              className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all resize-none"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider px-1">
+                            <div className="flex items-center gap-4">
+                              <span>ID: {currentProject.id}</span>
+                              <span>Version: {currentProject.version}</span>
+                            </div>
+                            <span>Last Modified: {new Date(currentProject.lastModified).toLocaleString()}</span>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[var(--border-color)] rounded-3xl bg-[var(--bg-sidebar)]/30">
+                          <FileJson className="w-12 h-12 text-[var(--text-muted)] mb-4 opacity-20" />
+                          <p className="text-sm text-[var(--text-muted)] text-center max-w-xs">
+                            No project active. Select one from your library below or create a new one.
+                          </p>
+                        </div>
                       )}
                     </div>
 
-                    {currentProject ? (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6 pt-6 border-t border-[var(--border-color)]"
-                      >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Project Name</label>
-                            <div className="relative group">
-                              <input
-                                type="text"
-                                value={currentProject.name}
-                                onChange={(e) => handleProjectUpdate({ name: e.target.value })}
-                                className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
-                              />
-                              <Edit3 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Author</label>
-                            <input
-                              type="text"
-                              value={currentProject.author}
-                              onChange={(e) => handleProjectUpdate({ author: e.target.value })}
-                              className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">Description</label>
-                          <textarea
-                            value={currentProject.description}
-                            onChange={(e) => handleProjectUpdate({ description: e.target.value })}
-                            rows={3}
-                            className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all resize-none"
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider px-1">
-                          <div className="flex items-center gap-4">
-                            <span>ID: {currentProject.id}</span>
-                            <span>Version: {currentProject.version}</span>
-                          </div>
-                          <span>Last Modified: {new Date(currentProject.lastModified).toLocaleString()}</span>
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[var(--border-color)] rounded-3xl bg-[var(--bg-sidebar)]/30">
-                        <FileJson className="w-12 h-12 text-[var(--text-muted)] mb-4 opacity-20" />
-                        <p className="text-sm text-[var(--text-muted)] text-center max-w-xs">
-                          No project loaded. Upload a project JSON file to start customizing your workspace.
-                        </p>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-2">
+                        <h5 className="text-xs font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold">Project Library</h5>
+                        <span className="text-[10px] font-mono text-[var(--text-muted)]">{projects.length} Saved Projects</span>
                       </div>
-                    )}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {projects.length > 0 ? (
+                          projects.map(p => (
+                            <div 
+                              key={p.id}
+                              className={`group p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                                currentProject?.id === p.id 
+                                  ? 'bg-emerald-500/5 border-emerald-500/30 ring-1 ring-emerald-500/20' 
+                                  : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-emerald-500/30 hover:bg-[var(--bg-card-hover)]'
+                              }`}
+                              onClick={() => setCurrentProject(p)}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${currentProject?.id === p.id ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[var(--bg-sidebar)] text-[var(--text-muted)]'}`}>
+                                    <FolderOpen className="w-4 h-4" />
+                                  </div>
+                                  <h6 className="text-sm font-bold text-[var(--text-primary)] truncate max-w-[150px]">{p.name}</h6>
+                                </div>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteProject(p.id);
+                                  }}
+                                  className="p-1.5 text-[var(--text-muted)] hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-3 h-8">
+                                {p.description || 'No description provided.'}
+                              </p>
+                              <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+                                <span>v{p.version}</span>
+                                <span>{new Date(p.lastModified).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-full py-8 text-center bg-[var(--bg-sidebar)]/20 rounded-2xl border border-dashed border-[var(--border-color)]">
+                            <p className="text-xs text-[var(--text-muted)] italic">Your project library is empty.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
