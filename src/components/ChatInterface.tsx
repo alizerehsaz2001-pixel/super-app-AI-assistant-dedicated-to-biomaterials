@@ -73,7 +73,7 @@ const INITIAL_MESSAGES: Record<Mode, Message> = {
   },
   meta: {
     role: 'model',
-    text: "Hello. I am the Meta-AI Coordinator. I can orchestrate your entire research project across all our specialized assistants. Tell me about your high-level goals or complex challenges."
+    text: "Welcome. I am your Chief Scientific Officer (CSO). I orchestrate your entire research lifecycle—from initial design and informatics to regulatory strategy and project management. I specialize in strategic decision-making and resolving domain conflicts. How can I help you lead your project to success today?"
   },
   personal: {
     role: 'model',
@@ -137,10 +137,10 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
     "Install the Microfluidics Designer plugin"
   ],
   meta: [
-    "Plan a full project: injectable hydrogel for liver cancer",
-    "I have data but need help with analysis and publication",
-    "Guide me from idea to clinical trial for a bone scaffold",
-    "Optimize my workflow for a high-throughput screening study"
+    "Develop a Master Plan: injectable hydrogel for liver cancer",
+    "Analyze trade-offs: high-strength vs. fast-degrading scaffolds",
+    "Create a translation roadmap from lab to clinical trial",
+    "Orchestrate a multi-module workflow for high-throughput discovery"
   ],
   personal: [
     "Upload my latest hydrogel project",
@@ -433,7 +433,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       // Create a placeholder for the model response
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
 
-      const stream = streamChatResponse(finalMessages, systemInstruction, isThinking, apiKey, mode === 'promptArchitect');
+      const stream = streamChatResponse(finalMessages, systemInstruction, isThinking, apiKey, mode === 'promptArchitect' || mode === 'meta');
       
       let fullResponse = '';
       let fullThought = '';
@@ -573,7 +573,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'regulatory': return Scale;
       case 'project': return KanbanSquare;
       case 'integration': return Settings;
-      case 'meta': return LayoutGrid;
+      case 'meta': return Brain;
       case 'personal': return FolderOpen;
     }
   };
@@ -589,7 +589,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'regulatory': return 'Regulatory Affairs Specialist';
       case 'project': return 'Project Management Assistant';
       case 'integration': return 'Integration Specialist';
-      case 'meta': return 'Meta-AI Coordinator';
+      case 'meta': return 'Chief Scientific Officer (CSO)';
       case 'personal': return 'Personal Project Workspace';
     }
   };
@@ -605,7 +605,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'regulatory': return 'Compliance & Translation';
       case 'project': return 'Planning & Management';
       case 'integration': return 'Profile & Integrations';
-      case 'meta': return 'Orchestration & Strategy';
+      case 'meta': return 'Strategic Project Orchestration';
       case 'personal': return 'Upload & Customization';
     }
   };
@@ -1021,6 +1021,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
                             mode === 'research' ? 'RESEARCHING...' : 
                             mode === 'regulatory' ? 'ANALYZING REGULATIONS...' : 
                             mode === 'project' ? 'PLANNING PROJECT...' : 
+                             mode === 'meta' ? 'STRATEGIZING MASTER PLAN...' :
                             mode === 'integration' ? 'CONFIGURING...' : 'ORCHESTRATING...'}
                          </span>
                        </motion.div>
