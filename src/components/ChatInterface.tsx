@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen, Wand2, Plus } from 'lucide-react';
-import { streamChatResponse } from '../services/gemini';
+import { Send, Bot, User, Loader2, Beaker, RotateCcw, Copy, Check, Sparkles, Database, FlaskConical, ClipboardList, BrainCircuit, BookOpen, Scale, KanbanSquare, Settings, LayoutGrid, ChevronRight, Menu, X, UserPlus, LogIn, Mail, Lock, ShieldCheck, Brain, Download, FileText, Activity, Sun, Moon, BarChart3, Zap, Upload, FileJson, Edit3, Save, Trash2, FolderOpen, Wand2, Plus, Image as ImageIcon } from 'lucide-react';
+import { streamChatResponse, generateImage } from '../services/gemini';
 import { Visualization } from './Visualization';
 import { DESIGN_SYSTEM_INSTRUCTION, INFORMATICS_SYSTEM_INSTRUCTION, ELN_SYSTEM_INSTRUCTION, ML_SYSTEM_INSTRUCTION, RESEARCH_SYSTEM_INSTRUCTION, REGULATORY_SYSTEM_INSTRUCTION, PROJECT_SYSTEM_INSTRUCTION, INTEGRATION_SYSTEM_INSTRUCTION, META_SYSTEM_INSTRUCTION, PROMPT_ARCHITECT_SYSTEM_INSTRUCTION } from '../constants';
 
@@ -11,6 +11,7 @@ interface Message {
   role: 'user' | 'model';
   text: string;
   thought?: string;
+  imageUrl?: string;
 }
 
 declare global {
@@ -22,7 +23,7 @@ declare global {
   }
 }
 
-type Mode = 'promptArchitect' | 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta' | 'personal';
+type Mode = 'promptArchitect' | 'design' | 'informatics' | 'eln' | 'ml' | 'research' | 'regulatory' | 'project' | 'integration' | 'meta' | 'personal' | 'visualizer';
 
 interface Project {
   id: string;
@@ -78,6 +79,10 @@ const INITIAL_MESSAGES: Record<Mode, Message> = {
   personal: {
     role: 'model',
     text: "Welcome to your Personal Project Workspace. Here you can upload your own project files, customize their metadata, and collaborate with me to refine your research goals. How can I assist with your project today?"
+  },
+  visualizer: {
+    role: 'model',
+    text: "Welcome to the Nano Banana Pro Visualizer. I can generate high-fidelity scientific illustrations and concept art for your biomaterials. Please describe the image you'd like to create, and select your desired resolution (1K, 2K, or 4K)."
   }
 };
 
@@ -147,6 +152,12 @@ const EXAMPLE_PROMPTS: Record<Mode, string[]> = {
     "Customize the author and version of my project",
     "Analyze the data within my uploaded project",
     "Suggest improvements for my project description"
+  ],
+  visualizer: [
+    "A 3D render of a porous silk fibroin scaffold for bone tissue engineering",
+    "Microscopic view of fluorescently labeled nanoparticles entering a cancer cell",
+    "A cross-section of a multi-layered wound dressing with drug-releasing layers",
+    "Schematic of an injectable hydrogel forming a gel in situ within a tumor"
   ]
 };
 
@@ -164,6 +175,7 @@ export default function ChatInterface() {
     integration: [INITIAL_MESSAGES.integration],
     meta: [INITIAL_MESSAGES.meta],
     personal: [INITIAL_MESSAGES.personal],
+    visualizer: [INITIAL_MESSAGES.visualizer],
   });
   const messages = allMessages[mode];
   
@@ -185,6 +197,9 @@ export default function ChatInterface() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('GEMINI_API_KEY_OVERRIDE') || '');
   const [showApiKey, setShowApiKey] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '3:4' | '4:3' | '9:16' | '16:9'>('1:1');
+  const [hasApiKey, setHasApiKey] = useState(false);
   const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('BIOMAT_PROJECTS');
     return saved ? JSON.parse(saved) : [];
@@ -225,11 +240,24 @@ export default function ChatInterface() {
     }
   };
 
+  // Check for API key on mount
+  useEffect(() => {
+    const checkKey = async () => {
+      if (window.aistudio) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        setHasApiKey(hasKey);
+      }
+    };
+    checkKey();
+  }, []);
+
   const handleOpenPlatformKeySelect = async () => {
     try {
       const aiWin = window as any;
       if (aiWin.aistudio && typeof aiWin.aistudio.openSelectKey === 'function') {
         await aiWin.aistudio.openSelectKey();
+        // Assume success and update state
+        setHasApiKey(true);
       } else {
         alert('Platform key selection is not available in this environment.');
       }
@@ -411,6 +439,48 @@ export default function ChatInterface() {
     if (mode === 'integration') systemInstruction = INTEGRATION_SYSTEM_INSTRUCTION;
     if (mode === 'meta') systemInstruction = META_SYSTEM_INSTRUCTION;
 
+    if (mode === 'visualizer') {
+      if (!hasApiKey) {
+        setMessages(prev => [...prev, { 
+          role: 'model', 
+          text: "To use the Nano Banana Pro Visualizer, you must first select a paid Gemini API key. Please click the button below to select your key." 
+        }]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setMessages(prev => [...prev, { role: 'model', text: 'Generating your scientific illustration...' }]);
+        const result = await generateImage(textToSend, imageSize, aspectRatio);
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = { 
+            role: 'model', 
+            text: result.text || 'Image generated successfully.',
+            imageUrl: result.imageUrl || undefined
+          };
+          return newMessages;
+        });
+      } catch (error: any) {
+        console.error('Image generation error:', error);
+        if (error.message?.includes('Requested entity was not found')) {
+          setHasApiKey(false);
+          setMessages(prev => [...prev, { 
+            role: 'model', 
+            text: "Your API key session has expired or is invalid. Please re-select your key." 
+          }]);
+        } else {
+          setMessages(prev => [...prev, { 
+            role: 'model', 
+            text: `Error generating image: ${error.message || 'Unknown error'}` 
+          }]);
+        }
+      } finally {
+        setIsLoading(false);
+        return;
+      }
+    }
+
     // Add project context if available
     let finalMessages = [...messages, userMessage];
     if (currentProject && mode === 'personal') {
@@ -559,6 +629,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'integration': return 'orange';
       case 'meta': return 'fuchsia';
       case 'personal': return 'emerald';
+      case 'visualizer': return 'pink';
     }
   };
 
@@ -575,6 +646,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'integration': return Settings;
       case 'meta': return Brain;
       case 'personal': return FolderOpen;
+      case 'visualizer': return ImageIcon;
     }
   };
 
@@ -591,6 +663,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'integration': return 'Integration Specialist';
       case 'meta': return 'Chief Scientific Officer (CSO)';
       case 'personal': return 'Personal Project Workspace';
+      case 'visualizer': return 'Nano Banana Pro Visualizer';
     }
   };
 
@@ -607,6 +680,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
       case 'integration': return 'Profile & Integrations';
       case 'meta': return 'Strategic Project Orchestration';
       case 'personal': return 'Upload & Customization';
+      case 'visualizer': return 'AI Image Generation';
     }
   };
 
@@ -684,7 +758,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
               <div className="w-1 h-1 rounded-full bg-[var(--text-muted)]"></div>
               <span className="mono-label">Specialized Assistants</span>
             </div>
-            {(['design', 'informatics', 'eln', 'ml', 'research', 'regulatory', 'project', 'integration', 'meta'] as Mode[]).map((m) => (
+            {(['design', 'informatics', 'eln', 'ml', 'research', 'regulatory', 'project', 'visualizer', 'integration', 'meta'] as Mode[]).map((m) => (
               <button
                 key={m}
                 onClick={() => handleModeChange(m)}
@@ -932,6 +1006,26 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
                             )}
                             
                             <div className={`relative group inline-block px-6 py-5 rounded-3xl text-[15px] leading-7 bg-[var(--bg-card)] backdrop-blur-sm border border-[var(--border-color)] text-[var(--text-primary)] w-full shadow-sm rounded-tl-sm hover:shadow-md transition-shadow duration-300`}>
+                              {msg.imageUrl && (
+                                <div className="mb-6 rounded-2xl overflow-hidden border border-[var(--border-color)] shadow-lg bg-black/20">
+                                  <img 
+                                    src={msg.imageUrl} 
+                                    alt="Generated scientific illustration" 
+                                    className="w-full h-auto object-contain max-h-[600px]"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <div className="px-4 py-2 bg-black/40 backdrop-blur-md flex items-center justify-between border-t border-white/10">
+                                    <span className="text-[10px] font-mono text-white/60 uppercase tracking-widest">Nano Banana Pro Render</span>
+                                    <a 
+                                      href={msg.imageUrl} 
+                                      download="biomat_render.png"
+                                      className="p-1.5 text-white/60 hover:text-white transition-colors"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
                               {score && (
                                 <div className={`absolute -top-3 left-4 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm flex items-center gap-1.5 ${
                                   score.toLowerCase() === 'high' ? 'bg-emerald-950/50 text-emerald-400 border-emerald-900/50' :
@@ -1022,6 +1116,7 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
                             mode === 'regulatory' ? 'ANALYZING REGULATIONS...' : 
                             mode === 'project' ? 'PLANNING PROJECT...' : 
                              mode === 'meta' ? 'STRATEGIZING MASTER PLAN...' :
+                             mode === 'visualizer' ? 'RENDERING SCIENTIFIC ILLUSTRATION...' :
                             mode === 'integration' ? 'CONFIGURING...' : 'ORCHESTRATING...'}
                          </span>
                        </motion.div>
@@ -1253,6 +1348,88 @@ Data: ${JSON.stringify(currentProject.data || {}, null, 2)}`;
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {mode === 'visualizer' && (
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 shadow-xl space-y-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-pink-500/10 border border-pink-500/20">
+                          <ImageIcon className="w-6 h-6 text-pink-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-[var(--text-primary)]">Nano Banana Pro Visualizer</h4>
+                          <p className="text-sm text-[var(--text-muted)]">Generate high-fidelity scientific illustrations.</p>
+                        </div>
+                      </div>
+                      {!hasApiKey && (
+                        <button
+                          onClick={handleOpenPlatformKeySelect}
+                          className="px-6 py-3 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-pink-600/20 active:scale-95 flex items-center gap-2"
+                        >
+                          <Lock className="w-4 h-4" />
+                          Select API Key
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-[var(--border-color)]">
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">
+                          Image Resolution
+                        </label>
+                        <div className="flex gap-2">
+                          {(['1K', '2K', '4K'] as const).map((size) => (
+                            <button
+                              key={size}
+                              onClick={() => setImageSize(size)}
+                              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border ${
+                                imageSize === size 
+                                  ? 'bg-pink-500/10 border-pink-500/50 text-pink-400 shadow-inner' 
+                                  : 'bg-[var(--bg-input)] border-[var(--border-color)] text-[var(--text-muted)] hover:border-pink-500/30'
+                              }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)] italic ml-1">
+                          Higher resolutions provide more detail but may take longer to generate.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)] font-bold ml-1">
+                          Aspect Ratio
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['1:1', '4:3', '16:9', '3:4', '9:16'] as const).map((ratio) => (
+                            <button
+                              key={ratio}
+                              onClick={() => setAspectRatio(ratio)}
+                              className={`py-2 px-4 rounded-xl text-xs font-bold transition-all border ${
+                                aspectRatio === ratio 
+                                  ? 'bg-pink-500/10 border-pink-500/50 text-pink-400 shadow-inner' 
+                                  : 'bg-[var(--bg-input)] border-[var(--border-color)] text-[var(--text-muted)] hover:border-pink-500/30'
+                              }`}
+                            >
+                              {ratio}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {!hasApiKey && (
+                      <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded-2xl">
+                        <p className="text-xs text-pink-400 leading-relaxed">
+                          <span className="font-bold uppercase mr-2">Requirement:</span>
+                          You must select a paid Gemini API key from the platform to use the Nano Banana Pro image generation models. 
+                          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="underline ml-1 hover:text-pink-300">Learn about billing</a>.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 

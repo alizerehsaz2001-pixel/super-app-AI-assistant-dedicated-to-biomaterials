@@ -36,3 +36,35 @@ export async function* streamChatResponse(
     };
   }
 }
+
+export async function generateImage(
+  prompt: string,
+  size: '1K' | '2K' | '4K' = '1K',
+  aspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9' = '1:1'
+) {
+  const key = process.env.API_KEY;
+  if (!key) throw new Error('API Key not found. Please select a key.');
+  
+  const ai = new GoogleGenAI({ apiKey: key });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-image-preview',
+    contents: {
+      parts: [{ text: prompt }]
+    },
+    config: {
+      imageConfig: {
+        aspectRatio,
+        imageSize: size
+      }
+    }
+  });
+
+  const parts = response.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find(p => p.inlineData);
+  const textPart = parts.find(p => p.text);
+
+  return {
+    imageUrl: imagePart?.inlineData ? `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}` : null,
+    text: textPart?.text || ''
+  };
+}
